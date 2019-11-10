@@ -1,6 +1,7 @@
 import argparse
 import itertools
 import os
+import sys
 
 from robotizr.input.jira_reader import JiraReader
 from robotizr.core import config_loader
@@ -20,7 +21,9 @@ def run():
     parser.add_argument('--print-test', help='Prints the fields of the given issue and exit')
 
     args = parser.parse_args()
-    if args.print_default_config:
+    if len(sys.argv) == 1:
+        parser.print_help()
+    elif args.print_default_config:
         print_default_config()
     elif args.print_test:
         print_issue(args)
