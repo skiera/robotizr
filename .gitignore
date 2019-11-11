@@ -128,5 +128,5 @@ dmypy.json
 .idea
 
 # Project related
-*.json
+/*.json
 notes.md
