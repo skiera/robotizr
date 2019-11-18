@@ -47,5 +47,6 @@ def generate(args):
     config_files = list(itertools.chain(*args.config))
     config = config_loader.load(config_files)
     reader = JiraReader(config['source'][args.source])
-    suites = reader.convert_tests(args.query)
+    props = {"target": args.target}
+    suites = reader.convert_tests(args.query, props)
     writer.write(config['output'], suites, args.target)
