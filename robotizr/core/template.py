@@ -36,9 +36,11 @@ def get_list_value_for_placeholder(source, issue, template, props, clazz=None):
                             value = modify(source, modifier, value, props)
                         result.append(template.replace(placeholder, str(value).rstrip()))
         else:
-            value = rgetattr(issue, key)
+            value = str(rgetattr(issue, key))
             if value:
-                result.extend(template.replace(placeholder, str(rgetattr(issue, key)).rstrip()).split("\n"))
+                if modifier:
+                    value = modify(source, modifier, value, props)
+                result.extend(template.replace(placeholder, value.rstrip()).split("\n"))
 
     return result if len(result) != 1 or result[0] else []
 
@@ -65,7 +67,7 @@ def get_string_value_for_placeholder(source, issue, template, props, clazz=None)
 
 
 def modify(source, modifier, value, props):
-    matches = re.search("([a-z_]+)=(.*)", modifier)
+    matches = re.search("([a-z_]+)(?:=(.*))?", modifier)
     if matches:
         cmd = matches.group(1)
         payload = matches.group(2)
@@ -82,6 +84,10 @@ def modify(source, modifier, value, props):
                 source.save_attachment(url, file_name)
                 variable = get_string_value_for_placeholder(source, value, variable.replace("&", "%"), props)
                 return variable
+        elif cmd == "lower":
+            return value.lower()
+        elif cmd == "upper":
+            return value.upper()
         elif cmd == "default":
             if not value or value is None:
                 return payload
