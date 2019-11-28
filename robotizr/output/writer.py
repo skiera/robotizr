@@ -1,10 +1,16 @@
 import os
+import re
 import codecs
+import unicodedata
 
 
 def write(config, suites, target):
     for suite in suites:
-        name_parts = suite.name.lower().replace(" ", "-").strip("/").split("/")
+
+        name_parts = suite.name.strip("/").split("/")
+        for i, s in enumerate(name_parts):
+            name_parts[i] = slugify(s)
+
         path = "%s/%s" % (target, '/'.join(name_parts[:-1]))
         os.makedirs(path, exist_ok=True)
 
@@ -63,3 +69,18 @@ def write_multi_test_setting(f, name, keywords, separator):
         f.write(
             "%s[%s]%sRun Keywords%s%s\n" % (
                 separator, name, separator, separator, (separator + "AND" + separator).join(keywords)))
+
+
+def slugify(value, allow_unicode=False):
+    """
+    Convert to ASCII if 'allow_unicode' is False. Convert spaces to hyphens.
+    Remove characters that aren't alphanumerics, underscores, or hyphens.
+    Convert to lowercase. Also strip leading and trailing whitespace.
+    """
+    value = str(value)
+    if allow_unicode:
+        value = unicodedata.normalize('NFKC', value)
+    else:
+        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = re.sub(r'[^\w\s-]', '-', value).strip().lower()
+    return re.sub(r'[-\s]+', '-', value)
