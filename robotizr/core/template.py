@@ -16,15 +16,15 @@ def evaluate(source, test, issue, field, template, props, clazz=None):
 
 def get_list_value_for_placeholder(source, issue, template, props, clazz=None):
     matches = re.findall("(%([^%|:]+)(?::([^%|]+))?(?:\\|([^%]+))?%)", template)
-    if len(matches) != 1:
-        raise LookupError(
-            "Expected 1 match, but found %d matches %s for template '%s'" % (len(matches), matches, template))
+    # if len(matches) != 1:
+    #     raise LookupError(
+    #         "Expected 1 match, but found %d matches %s for template '%s'" % (len(matches), matches, template))
     result = []
     for placeholder, key, args, modifier in matches:
         attr = rgetattr(issue, key)
         if isinstance(attr, list):
             values = rgetattr(issue, key)
-            for value in values:
+            for i, value in enumerate(values):
                 if clazz is not None:
                     obj = clazz()
                     fields = re.findall("([^,=]+)=([^,]+)?", args)
@@ -32,16 +32,20 @@ def get_list_value_for_placeholder(source, issue, template, props, clazz=None):
                         evaluate(source, obj, value, field_name, "%" + field_value.replace("~", "|") + "%", props)
                     result.append(obj)
                 else:
+                    if len(result) <= i:
+                        result.append(template)
                     if value:
                         if modifier:
                             value = modify(source, modifier, value, props)
-                        result.append(template.replace(placeholder, str(value).rstrip()))
+                        result[i] = result[i].replace(placeholder, str(value).rstrip())
         else:
             value = str(rgetattr(issue, key))
             if value:
                 if modifier:
                     value = modify(source, modifier, value, props)
                 result.extend(template.replace(placeholder, value.rstrip()).split("\n"))
+
+    result = [entry for entry in result if not isinstance(entry, str) or len(re.findall("(%([^%|:]+)(?::([^%|]+))?(?:\\|([^%]+))?%)", entry)) == 0]
 
     return result if len(result) != 1 or result[0] else []
 
