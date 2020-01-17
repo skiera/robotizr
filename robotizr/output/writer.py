@@ -36,7 +36,7 @@ def write(config, suites, target):
                     f.write(test_case.name + "\n")
                     if test_case.documentation:
                         f.write("%s[Documentation]%s%s\n" % (
-                            separator, separator, test_case.documentation.replace("\n", separator + "..." + separator)))
+                            separator, separator, test_case.documentation.replace("\r", "").replace("\n", "\n" + separator + "..." + separator)))
                     if test_case.tags:
                         f.write("%s[Tags]%s%s\n" % (separator, separator, separator.join(test_case.tags)))
                     write_multi_test_setting(f, "Setup", test_case.setup, separator)
