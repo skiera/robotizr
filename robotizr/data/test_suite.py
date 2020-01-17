@@ -16,3 +16,4 @@ class Settings(object):
         self.test_setup = []
         self.test_teardown = []
         self.resources = []
+        self.metadata = {}

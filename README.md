@@ -29,7 +29,7 @@ Only Python 3 is needed, all dependencies are installed automatically via `pip`.
 You can install the current development version from GitHub:
 
 ```
-pip install -e git+https://github.com/skiera/robotizr@develop#egg=robotizr
+pip install --upgrade -e git+https://github.com/skiera/robotizr@develop#egg=robotizr
 ```
 
 ### Usage

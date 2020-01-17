@@ -1,4 +1,5 @@
 import re
+from dateutil import parser
 
 
 def evaluate(source, test, issue, field, template, props, clazz=None):
@@ -50,8 +51,12 @@ def get_string_value_for_placeholder(source, issue, template, props, clazz=None)
         obj = clazz()
         for field in template:
             attr = getattr(obj, field)
-            for t in template[field]:
-                attr.append(get_string_value_for_placeholder(source, issue, t, props))
+            if isinstance(attr, dict):
+                for f, t in template[field].items():
+                    attr[f] = get_string_value_for_placeholder(source, issue, t, props)
+            else:
+                for t in template[field]:
+                    attr.append(get_string_value_for_placeholder(source, issue, t, props))
         return obj
     else:
         matches = re.findall("(%([^%|:]+)(?::([^%|]+))?(?:\\|([^%]+))?%)", template)
@@ -88,6 +93,9 @@ def modify(source, modifier, value, props):
             return value.lower()
         elif cmd == "upper":
             return value.upper()
+        elif cmd == "dateformat":
+            d = parser.parse(value)
+            return d.strftime(payload.replace("&", "%"))
         elif cmd == "default":
             if not value or value is None:
                 return payload
