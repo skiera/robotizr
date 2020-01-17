@@ -39,7 +39,8 @@ def write(config, suites, target):
                             separator, separator, test_case.documentation.replace("\r", "").replace("\n", "\n" + separator + "..." + separator)))
                     if test_case.tags:
                         f.write("%s[Tags]%s%s\n" % (separator, separator, separator.join(test_case.tags)))
-                    write_multi_test_setting(f, "Setup", test_case.setup, separator)
+                    if len(test_case.setup) > 0:
+                        write_multi_test_setting(f, "Setup", suite.settings.test_setup + test_case.setup, separator)
                     for keyword in test_case.keywords:
                         f.write("%s%s" % (separator, keyword.keyword))
                         for argument in keyword.arguments:
