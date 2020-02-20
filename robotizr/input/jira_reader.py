@@ -25,7 +25,7 @@ class JiraReader(object):
         issues = self._jira.search_issues(query)
         suites = {}
         for issue in issues:
-            suite_name = template.get_string_value_for_placeholder(self, issue,
+            suite_name = template.get_string_value_for_placeholder(self, issue, issue,
                                                                    self._config['mappings']['test_suite']['name'], props)
             if suite_name not in suites:
                 suites[suite_name] = self._convert_obj(self._config["mappings"]["test_suite"], issue, props, TestSuite)
@@ -46,9 +46,9 @@ class JiraReader(object):
         obj = clazz()
         for field in mappings:
             if clazz is TestCase and field == "keywords":
-                template.evaluate(self, obj, issue, field, mappings[field], props, Keyword)
+                template.evaluate(self, obj, issue, issue, field, mappings[field], props, Keyword)
             elif clazz is TestSuite and field == "settings":
-                template.evaluate(self, obj, issue, field, mappings[field], props, Settings)
+                template.evaluate(self, obj, issue, issue, field, mappings[field], props, Settings)
             else:
-                template.evaluate(self, obj, issue, field, mappings[field], props)
+                template.evaluate(self, obj, issue, issue, field, mappings[field], props)
         return obj
