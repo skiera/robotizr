@@ -20,6 +20,8 @@ class JiraImporter(object):
 
         self._update_test_execution(file, test_execution_key)
 
+        return test_execution_key
+
     def _create_test_execution(self, file, project_key, test_exec_key):
         f = open(file, "r")
         content = f.read()
@@ -50,10 +52,6 @@ class JiraImporter(object):
         return json['testExecIssue']['key']
 
     def _update_test_execution(self, file, test_execution_key):
-        # Update test execution
-        # - Update Title
-        # - Update steps status
-
         r = requests.get(self._config['server'] + '/rest/raven/1.0/api/testexec/' + test_execution_key + '/test',
                          auth=HTTPBasicAuth(self._config['username'], self._config['password']))
         exec_json = r.json()

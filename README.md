@@ -38,8 +38,9 @@ pip install --upgrade -e git+https://github.com/skiera/robotizr@develop#egg=robo
 python -m robotizr -h
 usage: python -m robotizr [-h] [-c CONFIG [CONFIG ...]] [-s SOURCE] [-q QUERY]
                           [-t TARGET] [-i IMPORT_TEST_EXEC] [-p PROJECT_KEY]
-                          [-k TEST_EXEC_KEY] [--print-default-config]
-                          [--print-test PRINT_TEST]
+                          [-k TEST_EXEC_KEY] [--set-field SET_FIELD SET_FIELD]
+                          [--add-field ADD_FIELD ADD_FIELD]
+                          [--print-default-config] [--print-test PRINT_TEST]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -59,6 +60,10 @@ optional arguments:
                         Project key for test execution import
   -k TEST_EXEC_KEY, --test-exec-key TEST_EXEC_KEY
                         Test execution key to be overwritten
+  --set-field SET_FIELD SET_FIELD
+                        Define field - value pairs to be set (e.g. --set-field summary "Foo bar")
+  --add-field ADD_FIELD ADD_FIELD
+                        Define field - value pairs to be added (e.g. --add-field scope webshop)
   --print-default-config
                         Prints the content of the default config and exit
   --print-test PRINT_TEST
@@ -77,6 +82,19 @@ Example project configuration:
     "example": {
       "type": "jira",
       "server": "https://jira.example.com/jira",
+      "fields": {
+        "customfield_13557": {
+          "type": "TextField",
+          "alias": ["scope", "platform"]
+        },
+        "customfield_12756": {
+          "type": "MultiSelect",
+          "alias": ["environments"]
+        },
+        "fixVersions": {
+          "type": "VersionPicker"
+        }
+      },
       "mappings": {
         "test_suite": {
           "name": "%fields.customfield_13050|default=unnamed%",
@@ -132,7 +150,7 @@ Example login + password configuration:
 Example call
 
 ```shell script
-python -m robotizr -c ${PATH_TO_PROJECT}/config/robotizr-config.json ${HOME}/secure/private.json -s source -t ${PATH_TO_PROJECT}\cases --query "project = EXMAPLE AND type = test"
+python -m robotizr -c ${PATH_TO_PROJECT}/config/robotizr-config.json ${HOME}/secure/private.json -s example -t ${PATH_TO_PROJECT}\cases --query "project = EXMAPLE AND type = test"
 ```
 
 ### Execution result import
@@ -142,13 +160,13 @@ Robotizr can also import test execution files to create Test Execution tickets i
 Example call to create a new execution ticket
 
 ```shell script
-python -m robotizr -c ${PATH_TO_PROJECT}/config/robotizr-config.json ${HOME}/secure/private.json -s source -p PRJ
+python -m robotizr -c ${PATH_TO_PROJECT}/config/robotizr-config.json ${HOME}/secure/private.json -s example -p PRJ -i output.xml
 ```
 
 or to update an existing one
 
 ```shell script
-python -m robotizr -c ${PATH_TO_PROJECT}/config/robotizr-config.json ${HOME}/secure/private.json -s source -p PRJ -k PRJ-123
+python -m robotizr -c ${PATH_TO_PROJECT}/config/robotizr-config.json ${HOME}/secure/private.json -s example -p PRJ -k PRJ-123 -i output.xml
 ```
 
 
