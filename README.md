@@ -29,7 +29,7 @@ Only Python 3 is needed, all dependencies are installed automatically via `pip`.
 You can install the current development version from GitHub:
 
 ```
-pip install -e git+https://github.com/skiera/robotizr@develop#egg=robotizr
+pip install --upgrade -e git+https://github.com/skiera/robotizr@develop#egg=robotizr
 ```
 
 ### Usage
@@ -37,8 +37,10 @@ pip install -e git+https://github.com/skiera/robotizr@develop#egg=robotizr
 ```shell script
 python -m robotizr -h
 usage: python -m robotizr [-h] [-c CONFIG [CONFIG ...]] [-s SOURCE] [-q QUERY]
-                          [-t TARGET] [--print-default-config]
-                          [--print-test PRINT_TEST]
+                          [-t TARGET] [-i IMPORT_TEST_EXEC] [-p PROJECT_KEY]
+                          [-k TEST_EXEC_KEY] [--set-field SET_FIELD SET_FIELD]
+                          [--add-field ADD_FIELD ADD_FIELD]
+                          [--print-default-config] [--print-test PRINT_TEST]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -52,6 +54,16 @@ optional arguments:
   -t TARGET, --target TARGET
                         Target folder where the files should be placed,
                         default is current directory
+  -i IMPORT_TEST_EXEC, --import-test-exec IMPORT_TEST_EXEC
+                        Import test execution result file
+  -p PROJECT_KEY, --project-key PROJECT_KEY
+                        Project key for test execution import
+  -k TEST_EXEC_KEY, --test-exec-key TEST_EXEC_KEY
+                        Test execution key to be overwritten
+  --set-field SET_FIELD SET_FIELD
+                        Define field - value pairs to be set (e.g. --set-field summary "Foo bar")
+  --add-field ADD_FIELD ADD_FIELD
+                        Define field - value pairs to be added (e.g. --add-field scope webshop)
   --print-default-config
                         Prints the content of the default config and exit
   --print-test PRINT_TEST
@@ -70,6 +82,19 @@ Example project configuration:
     "example": {
       "type": "jira",
       "server": "https://jira.example.com/jira",
+      "fields": {
+        "customfield_13557": {
+          "type": "TextField",
+          "alias": ["scope", "platform"]
+        },
+        "customfield_12756": {
+          "type": "MultiSelect",
+          "alias": ["environments"]
+        },
+        "fixVersions": {
+          "type": "VersionPicker"
+        }
+      },
       "mappings": {
         "test_suite": {
           "name": "%fields.customfield_13050|default=unnamed%",
@@ -125,8 +150,25 @@ Example login + password configuration:
 Example call
 
 ```shell script
-python -m robotizr -c ${PATH_TO_PROJECT}/config/robotizr-config.json ${HOME}/secure/private.json -s osudio -t ${PATH_TO_PROJECT}\cases --query "project = EXMAPLE AND type = test"
+python -m robotizr -c ${PATH_TO_PROJECT}/config/robotizr-config.json ${HOME}/secure/private.json -s example -t ${PATH_TO_PROJECT}\cases --query "project = EXMAPLE AND type = test"
 ```
+
+### Execution result import
+
+Robotizr can also import test execution files to create Test Execution tickets in Jira. 
+
+Example call to create a new execution ticket
+
+```shell script
+python -m robotizr -c ${PATH_TO_PROJECT}/config/robotizr-config.json ${HOME}/secure/private.json -s example -p PRJ -i output.xml
+```
+
+or to update an existing one
+
+```shell script
+python -m robotizr -c ${PATH_TO_PROJECT}/config/robotizr-config.json ${HOME}/secure/private.json -s example -p PRJ -k PRJ-123 -i output.xml
+```
+
 
 ## Contributing
 

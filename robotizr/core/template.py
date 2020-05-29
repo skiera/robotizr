@@ -1,72 +1,86 @@
+import os
 import re
 
+from dateutil import parser
 
-def evaluate(source, test, issue, field, template, clazz=None):
+
+def evaluate(source, test, root_issue, issue, field, template, props, clazz=None):
     attr = getattr(test, field)
     if isinstance(attr, list):
         if isinstance(template, list):
             for row in template:
-                attr.extend(get_list_value_for_placeholder(source, issue, row, clazz))
+                attr.extend(get_list_value_for_placeholder(source, root_issue, issue, row, props, clazz))
         else:
-            attr.extend(get_list_value_for_placeholder(source, issue, template, clazz))
+            attr.extend(get_list_value_for_placeholder(source, root_issue, issue, template, props, clazz))
     else:
-        setattr(test, field, get_string_value_for_placeholder(source, issue, template, clazz))
+        setattr(test, field, get_string_value_for_placeholder(source, root_issue, issue, template, props, clazz))
 
 
-def get_list_value_for_placeholder(source, issue, template, clazz=None):
+def get_list_value_for_placeholder(source, root_issue, issue, template, props, clazz=None):
     matches = re.findall("(%([^%|:]+)(?::([^%|]+))?(?:\\|([^%]+))?%)", template)
-    if len(matches) != 1:
-        raise LookupError("Expected 1 match, but found %d matches: %s" % (len(matches), matches))
     result = []
-    modifier = None
     for placeholder, key, args, modifier in matches:
         attr = rgetattr(issue, key)
         if isinstance(attr, list):
             values = rgetattr(issue, key)
-            for value in values:
+            for i, value in enumerate(values):
                 if clazz is not None:
                     obj = clazz()
-                    fields = re.findall("([^,=]+)=([^,]+)", args)
+                    fields = re.findall("([^,=]+)=([^,]+)?", args)
                     for field_name, field_value in fields:
-                        evaluate(source, obj, value, field_name, "%" + field_value + "%")
+                        evaluate(source, obj, root_issue, value, field_name, "%" + field_value.replace("~", "|") + "%",
+                                 props)
                     result.append(obj)
                 else:
+                    if len(result) <= i:
+                        result.append(template)
                     if value:
-                        result.append(template.replace(placeholder, str(value).rstrip()))
+                        if modifier:
+                            value = modify(source, root_issue, modifier, value, props)
+                        result[i] = result[i].replace(placeholder, str(value).rstrip())
         else:
-            value = rgetattr(issue, key)
+            value = str(rgetattr(issue, key))
             if value:
-                result.extend(template.replace(placeholder, str(rgetattr(issue, key)).rstrip()).split("\n"))
+                if modifier:
+                    value = modify(source, root_issue, modifier, value, props)
+                result.extend(template.replace(placeholder, value.rstrip()).split("\n"))
 
-    if modifier:
-        modify_all(source, modifier, result)
+    result = [entry for entry in result if
+              not isinstance(entry, str) or len(re.findall("(%([^%|:]+)(?::([^%|]+))?(?:\\|([^%]+))?%)", entry)) == 0]
 
     return result if len(result) != 1 or result[0] else []
 
 
-def get_string_value_for_placeholder(source, issue, template, clazz=None):
+def get_string_value_for_placeholder(source, root_issue, issue, template, props, clazz=None):
     if clazz is not None:
         obj = clazz()
         for field in template:
             attr = getattr(obj, field)
-            for t in template[field]:
-                attr.append(get_string_value_for_placeholder(source, issue, t))
+            if isinstance(attr, dict):
+                for f, t in template[field].items():
+                    attr[f] = get_string_value_for_placeholder(source, root_issue, issue, t, props)
+            else:
+                for t in template[field]:
+                    attr.append(get_string_value_for_placeholder(source, root_issue, issue, t, props))
         return obj
     else:
         matches = re.findall("(%([^%|:]+)(?::([^%|]+))?(?:\\|([^%]+))?%)", template)
         value = template
         modifier = None
         for placeholder, key, args, modifier in matches:
-            value = value.replace(placeholder, str(rgetattr(issue, key)).rstrip())
+            tmp = rgetattr(issue, key, None)
+            if tmp is None:
+                tmp = rgetattr(root_issue, key)
+            value = value.replace(placeholder, str(tmp).rstrip())
 
         if modifier:
-            value = modify(source, modifier, value)
+            value = modify(source, root_issue, modifier, value, props)
 
         return value
 
 
-def modify(source, modifier, value):
-    matches = re.search("([a-z_]+)=(.*)", modifier)
+def modify(source, root_issue, modifier, value, props):
+    matches = re.search("([a-z_]+)(?:=(.*))?", modifier)
     if matches:
         cmd = matches.group(1)
         payload = matches.group(2)
@@ -74,7 +88,26 @@ def modify(source, modifier, value):
             if not value:
                 return value
             issue = source.get_test(value)
-            return get_string_value_for_placeholder(source, issue, payload.replace("&", "%"))
+            return get_string_value_for_placeholder(source, root_issue, issue, payload.replace("&", "%"), props)
+        elif cmd == "download":
+            if value:
+                url, file_name, variable = payload.split(";")
+                url = get_string_value_for_placeholder(source, root_issue, value, url.replace("&", "%"), props)
+                file_name = "%s/%s" % (props["target"], get_string_value_for_placeholder(source, root_issue, value,
+                                                                                         file_name.replace("&", "%"),
+                                                                                         props))
+                os.makedirs(os.path.dirname(os.path.abspath(file_name)), exist_ok=True)
+                source.save_attachment(url, file_name)
+                variable = get_string_value_for_placeholder(source, root_issue, value, variable.replace("&", "%"),
+                                                            props)
+                return variable
+        elif cmd == "lower":
+            return value.lower()
+        elif cmd == "upper":
+            return value.upper()
+        elif cmd == "dateformat":
+            d = parser.parse(value)
+            return d.strftime(payload.replace("&", "%"))
         elif cmd == "default":
             if not value or value is None:
                 return payload
@@ -85,27 +118,7 @@ def modify(source, modifier, value):
     return value
 
 
-def modify_all(source, modifier, result):
-    matches = re.search("([a-z_]+)=(.*)", modifier)
-    if matches:
-        cmd = matches.group(1)
-        payload = matches.group(2)
-        if cmd == "convert":
-            for i, value in enumerate(result):
-                if value:
-                    issue = source.get_test(value)
-                    result[i] = get_string_value_for_placeholder(source, issue, payload.replace("&", "%"))
-        elif cmd == "default":
-            for i, value in enumerate(result):
-                if not value or value is None:
-                    result[i] = payload
-        else:
-            print("WARN unknown command modifier '%s' ('%s')" % (cmd, modifier))
-    else:
-        print("WARN modifier '%s' is invalid" % modifier)
-
-
-def rgetattr(obj, attr):
+def rgetattr(obj, attr, default=""):
     def _rgetattr(_obj, names, pos):
         name = names[pos]
         if len(names) == pos + 1:
@@ -124,4 +137,4 @@ def rgetattr(obj, attr):
         return _rgetattr(obj, attr.split("."), 0)
     except AttributeError as err:
         print("INFO", err)
-        return ""
+        return default
