@@ -73,11 +73,14 @@ class JiraImporter(object):
 
                     las_pos = -1
                     for keyword in status[test_key]:
+                        found = False
                         for i in range(len(run_json['steps'])):
                             if i <= las_pos:
                                 continue
                             if keyword['name'].lower() == run_json['steps'][i]['step']['raw'].lower():
                                 las_pos = i
+
+                                found = True
 
                                 input_json = {'status': keyword['status'], 'actualResult': keyword['message'],
                                               'evidences': []}
@@ -104,6 +107,9 @@ class JiraImporter(object):
                                 break
                             else:
                                 las_pos = i
+
+                        if not found:
+                            logging.warning(" ... could not find jira step for keyword '%s'", keyword['name'])
 
 
 class ExecutionStatusChecker(ResultVisitor):
