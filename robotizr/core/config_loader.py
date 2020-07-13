@@ -20,10 +20,10 @@ def load(files):
         config = merger.merge(config, custom_config)
 
     for source in config['source']:
-        match = re.search("^%%([A-Z_-]+)%%$", config['source'][source]['password'])
+        match = re.search("^%%([0-9A-Za-z_-]+)%%$", config['source'][source]['password'])
         if match:
             config['source'][source]['password'] = os.environ.get(match.group(1), '')
-        match = re.search("^%%([A-Z_-]+)%%$", config['source'][source]['username'])
+        match = re.search("^%%([0-9A-Za-z_-]+)%%$", config['source'][source]['username'])
         if match:
             config['source'][source]['username'] = os.environ.get(match.group(1), '')
 
