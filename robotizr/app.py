@@ -41,6 +41,11 @@ def run():
                         action='store_true')
     parser.add_argument('--print-test', help='Prints the fields of the given issue and exit')
 
+    parser.add_argument('--clone-tests', nargs='+', help='Clones a given set of tests to the given project-key '
+                                                         '(e.g. --clone-test TEST-1 TEST-2 TEST-3 --project-key PROJECT')
+
+    parser.add_argument('--print-config', help='Prints the content of the merged config', action='store_true')
+
     args = parser.parse_args()
     if len(sys.argv) == 1:
         parser.print_help()
@@ -48,17 +53,27 @@ def run():
         print_default_config()
     elif args.print_test:
         print_issue(args)
+    elif args.print_config:
+        print_config(args)
     elif args.import_test_exec:
         if args.project_key or args.test_exec_key:
             import_test_exec(args)
         else:
             parser.print_help()
+    elif args.clone_tests:
+        clone_tests(args)
     else:
         generate(args)
 
 
 def print_default_config():
     print(open(os.path.dirname(os.path.abspath(__file__)) + '/resources/default-config.json').read())
+
+
+def print_config(args):
+    config_files = list(itertools.chain(*args.config))
+    config = config_loader.load(config_files)
+    print(config)
 
 
 def print_issue(args):
@@ -91,3 +106,10 @@ def update_fields(issue_key, config, args):
     api = JiraApi(source)
     api.update_issue(issue_key, args.set_field, args.add_field)
 
+
+def clone_tests(args):
+    config_files = list(itertools.chain(*args.config))
+    config = config_loader.load(config_files)
+    source = config['source'][args.source]
+    api = JiraApi(source)
+    api.clone_tests(args.clone_tests, args.project_key)

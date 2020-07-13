@@ -44,6 +44,10 @@ class JiraImporter(object):
         r = requests.post(self._config['server'] + '/rest/raven/1.0/import/execution/robot' + params,
                           auth=HTTPBasicAuth(self._config['username'], self._config['password']),
                           files=files)
+
+        if r.status_code >= 300:
+            logging.error("Request failed (status %s): %s", r.status_code, r.text)
+
         json = r.json()
 
         logging.info('Created/Updated test execution %s with id %s', json['testExecIssue']['key'],
