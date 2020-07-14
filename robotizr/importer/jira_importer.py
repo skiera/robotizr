@@ -23,7 +23,7 @@ class JiraImporter(object):
         return test_execution_key
 
     def _create_test_execution(self, file, project_key, test_exec_key):
-        f = open(file, "r")
+        f = open(file, "r", encoding='utf-8')
         content = f.read()
 
         # Remove all non jira id tags to avoid creating unwanted jira test labels
@@ -112,7 +112,7 @@ class JiraImporter(object):
                                     json=input_json
                                 )
 
-                                logging.info('... set status for Step \'%s\' to \'%s\' (with %i / %i attachments)',
+                                logging.info('... set status for step \'%s\' to \'%s\' (with %i / %i attachments)',
                                              run_json['steps'][i]['step']['raw'], keyword['status'], attachment_count,
                                              len(keyword['attachments']))
 
