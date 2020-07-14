@@ -2,7 +2,7 @@ import base64
 import logging
 import mimetypes
 import re
-from os.path import normpath, join, dirname
+from os.path import normpath, join, dirname, isfile
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -75,28 +75,35 @@ class JiraImporter(object):
 
                     logging.info('Updating test run for test %s ...', test['key'])
 
+                    # NOTE If not all fields are updated, the status will be set to EXECUTING
+
                     las_pos = -1
                     for keyword in status[test_key]:
                         found = False
                         for i in range(len(run_json['steps'])):
                             if i <= las_pos:
                                 continue
-                            if keyword['name'].lower() == run_json['steps'][i]['step']['raw'].lower():
+                            if keyword['name'].lower().strip() == run_json['steps'][i]['step']['raw'].lower().strip():
                                 las_pos = i
 
                                 found = True
 
                                 input_json = {'status': keyword['status'], 'actualResult': keyword['message'],
                                               'evidences': []}
+                                attachment_count = 0
                                 for attachment in keyword['attachments']:
                                     attachment_file = normpath(join(dirname(file), attachment))
-                                    with open(attachment_file, "rb") as f:
-                                        evidence = {
-                                            'filename': attachment,
-                                            'contentType': mimetypes.guess_type(attachment)[0],
-                                            'data': base64.b64encode(f.read()).decode('utf-8')
-                                        }
-                                        input_json['evidences'].append(evidence)
+                                    if isfile(attachment_file):
+                                        with open(attachment_file, "rb") as f:
+                                            evidence = {
+                                                'filename': attachment,
+                                                'contentType': mimetypes.guess_type(attachment)[0],
+                                                'data': base64.b64encode(f.read()).decode('utf-8')
+                                            }
+                                            input_json['evidences'].append(evidence)
+                                        attachment_count = attachment_count + 1
+                                    else:
+                                        logging.warning("Can not find file '%s', skip upload for it", attachment_file)
 
                                 r = requests.put(
                                     self._config['server'] + '/rest/raven/1.0/api/testrun/' + str(
@@ -105,8 +112,9 @@ class JiraImporter(object):
                                     json=input_json
                                 )
 
-                                logging.info('... set status for Step \'%s\' to \'%s\' (with %i attachments)', run_json['steps'][i]['step']['raw'],
-                                             keyword['status'], len(keyword['attachments']))
+                                logging.info('... set status for Step \'%s\' to \'%s\' (with %i / %i attachments)',
+                                             run_json['steps'][i]['step']['raw'], keyword['status'], attachment_count,
+                                             len(keyword['attachments']))
 
                                 break
                             else:
