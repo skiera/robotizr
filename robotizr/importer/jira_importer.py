@@ -105,7 +105,7 @@ class JiraImporter(object):
                                     json=input_json
                                 )
 
-                                logging.info('... set status for %s to %s (with %i attachments)', run_json['steps'][i]['step']['raw'],
+                                logging.info('... set status for Step \'%s\' to \'%s\' (with %i attachments)', run_json['steps'][i]['step']['raw'],
                                              keyword['status'], len(keyword['attachments']))
 
                                 break

@@ -17,6 +17,10 @@ class JiraApi(object):
         self._define_fields(fields, "set", fields_set)
         self._define_fields(fields, "add", fields_add)
 
+        if len(fields) == 0:
+            logging.info("No fields needs to be updated for issue %s", issue_key)
+            return
+
         logging.info("Updating issue %s: %s", issue_key, fields)
 
         json = {
