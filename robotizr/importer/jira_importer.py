@@ -23,7 +23,7 @@ class JiraImporter(object):
         return test_execution_key
 
     def _create_test_execution(self, file, project_key, test_exec_key):
-        f = open(file, "r", encoding='utf-8')
+        f = open(file, "r", encoding="utf-8")
         content = f.read()
 
         # Remove all non jira id tags to avoid creating unwanted jira test labels
@@ -43,7 +43,7 @@ class JiraImporter(object):
 
         r = requests.post(self._config['server'] + '/rest/raven/1.0/import/execution/robot' + params,
                           auth=HTTPBasicAuth(self._config['username'], self._config['password']),
-                          files=files)
+                          files=files, verify=False)
 
         if r.status_code >= 300:
             logging.error("Request failed (status %s): %s", r.status_code, r.text)
@@ -57,7 +57,7 @@ class JiraImporter(object):
 
     def _update_test_execution(self, file, test_execution_key):
         r = requests.get(self._config['server'] + '/rest/raven/1.0/api/testexec/' + test_execution_key + '/test',
-                         auth=HTTPBasicAuth(self._config['username'], self._config['password']))
+                         auth=HTTPBasicAuth(self._config['username'], self._config['password']), verify=False)
         exec_json = r.json()
 
         status = {}
@@ -70,7 +70,7 @@ class JiraImporter(object):
                 if test_key == test['key']:
                     r = requests.get(
                         self._config['server'] + '/rest/raven/1.0/api/testrun/' + str(test['id']) + '/',
-                        auth=HTTPBasicAuth(self._config['username'], self._config['password']))
+                        auth=HTTPBasicAuth(self._config['username'], self._config['password']), verify=False)
                     run_json = r.json()
 
                     logging.info('Updating test run for test %s ...', test['key'])
@@ -109,7 +109,8 @@ class JiraImporter(object):
                                     self._config['server'] + '/rest/raven/1.0/api/testrun/' + str(
                                         test['id']) + '/step/' + str(run_json['steps'][i]['id']) + '/',
                                     auth=HTTPBasicAuth(self._config['username'], self._config['password']),
-                                    json=input_json
+                                    json=input_json,
+                                    verify=False
                                 )
 
                                 logging.info('... set status for step \'%s\' to \'%s\' (with %i / %i attachments)',

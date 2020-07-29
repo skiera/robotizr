@@ -4,6 +4,7 @@ import os
 import requests
 from jsonmerge import Merger
 from requests.auth import HTTPBasicAuth
+from typing import Tuple
 
 
 class JiraApi(object):
@@ -29,7 +30,8 @@ class JiraApi(object):
 
         r = requests.put(self._config['server'] + '/rest/api/2/issue/' + issue_key,
                          auth=HTTPBasicAuth(self._config['username'], self._config['password']),
-                         json=json)
+                         json=json,
+                         verify=False)
         if r.status_code == 204:
             logging.info("Issue %s successfully updated", issue_key)
         else:
@@ -57,6 +59,57 @@ class JiraApi(object):
                 else:
                     fields[name].append({action: value})
 
+    def create_tests(self, tests, folder, new_project_key):
+        if not new_project_key:
+            raise ValueError("Project key missing")
+
+        folders = self.get_test_repository_folders(new_project_key)
+
+        for summary in tests:
+            new_issue = {
+                "fields": {
+                    "project": {
+                        "key": new_project_key
+                    },
+                    "issuetype": {
+                        "name": "Test"
+                    },
+                    "summary": summary,
+                    "description": "",
+                    "assignee": {
+                        "name": "tempo"
+                    }
+                }
+            }
+
+            r = requests.post(self._config['server'] + '/rest/api/2/issue',
+                              auth=HTTPBasicAuth(self._config['username'], self._config['password']),
+                              json=new_issue,
+                              verify=False)
+            if r.status_code >= 300:
+                raise ValueError(r.text)
+
+            response = r.json()
+            new_test_key = response['key']
+
+            if folder:
+                if folder not in folders:
+                    folders[folder] = self._create_test_repository_folder_recursive(folder, new_project_key, folders)
+
+                folder_id = folders[folder]
+
+                json = {"add": [new_test_key]}
+                r = requests.put(self._config['server'] + '/rest/raven/1.0/api/testrepository/'
+                                 + new_project_key + '/folders/' + str(folder_id) + '/tests',
+                                 auth=HTTPBasicAuth(self._config['username'], self._config['password']),
+                                 json=json,
+                                 verify=False)
+                if r.status_code >= 300:
+                    logging.error("Error (%s): %s", r.status_code, r.text)
+                    raise ValueError(r.text)
+
+            logging.info("Created '%s' in folder '%s' -> %s", summary, folder, new_test_key)
+
     def clone_tests(self, test_keys, new_project_key):
         if not new_project_key:
             raise ValueError("Project key missing")
@@ -65,7 +118,8 @@ class JiraApi(object):
 
         for test_key in test_keys:
             r = requests.get(self._config['server'] + '/rest/api/2/issue/' + test_key,
-                             auth=HTTPBasicAuth(self._config['username'], self._config['password']))
+                             auth=HTTPBasicAuth(self._config['username'], self._config['password']),
+                             verify=False)
             if r.status_code != 200:
                 logging.error("%s: %s", r.status_code, r.text)
                 raise ValueError(r.text)
@@ -132,29 +186,33 @@ class JiraApi(object):
 
             r = requests.post(self._config['server'] + '/rest/api/2/issue',
                               auth=HTTPBasicAuth(self._config['username'], self._config['password']),
-                              json=new_issue)
+                              json=new_issue,
+                              verify=False)
             if r.status_code >= 300:
                 raise ValueError(r.text)
-            else:
-                response = r.json()
-                new_test_key = response['key']
+
+            response = r.json()
+            new_test_key = response['key']
 
             if not new_test_key:
                 raise ValueError("Missing new test key")
 
             folder = orig_issue["fields"]["customfield_13050"]
-            if folder not in folders:
-                folders[folder] = self._create_test_repository_folder_recursive(folder, new_project_key, folders)
+            if folder:
+                if folder not in folders:
+                    folders[folder] = self._create_test_repository_folder_recursive(folder, new_project_key, folders)
 
-            folder_id = folders[folder]
+                folder_id = folders[folder]
 
-            json = {"add": [new_test_key]}
-            r = requests.put(self._config['server'] + '/rest/raven/1.0/api/testrepository/'
-                             + new_project_key + '/folders/' + str(folder_id) + '/tests',
-                             auth=HTTPBasicAuth(self._config['username'], self._config['password']),
-                             json=json)
-            if r.status_code >= 300:
-                raise ValueError(r.text)
+                json = {"add": [new_test_key]}
+                r = requests.put(self._config['server'] + '/rest/raven/1.0/api/testrepository/'
+                                 + new_project_key + '/folders/' + str(folder_id) + '/tests',
+                                 auth=HTTPBasicAuth(self._config['username'], self._config['password']),
+                                 json=json,
+                                 verify=False)
+                if r.status_code >= 300:
+                    logging.error("Error (%s): %s", r.status_code, r.text)
+                    raise ValueError(r.text)
 
             logging.info("Cloned %s -> %s", orig_issue['key'], new_test_key)
 
@@ -174,7 +232,8 @@ class JiraApi(object):
             r = requests.post(self._config['server'] + '/rest/raven/1.0/api/testrepository/'
                               + project_key + '/folders/' + str(root_folder_id),
                               auth=HTTPBasicAuth(self._config['username'], self._config['password']),
-                              json=json)
+                              json=json,
+                              verify=False)
             if r.status_code >= 300:
                 raise ValueError(r.text)
             root_folder_id = r.json()["id"]
@@ -184,7 +243,8 @@ class JiraApi(object):
 
     def get_test_repository_folders(self, project_key):
         r = requests.get(self._config['server'] + '/rest/raven/1.0/api/testrepository/' + project_key + '/folders',
-                         auth=HTTPBasicAuth(self._config['username'], self._config['password']))
+                         auth=HTTPBasicAuth(self._config['username'], self._config['password']),
+                         verify=False)
         if r.status_code >= 300:
             logging.error("%s: %s", r.status_code, r.text)
             raise ValueError(r.text)
