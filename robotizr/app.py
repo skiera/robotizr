@@ -3,6 +3,7 @@ import itertools
 import logging
 import os
 import sys
+import ssl
 
 from robotizr.core import config_loader
 from robotizr.core import object_printer
@@ -18,6 +19,12 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     ]
 )
+
+
+# redhat ssl verification patch
+if os.environ.get('PYTHONHTTPSVERIFY', '1') == '0' and getattr(ssl, '_create_unverified_context', None):
+    logging.warning("Disabling SSL Verification")
+    ssl._create_default_https_context = ssl._create_unverified_context
 
 
 def run():
