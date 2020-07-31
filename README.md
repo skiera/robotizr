@@ -41,6 +41,8 @@ usage: python -m robotizr [-h] [-c CONFIG [CONFIG ...]] [-s SOURCE] [-q QUERY]
                           [-k TEST_EXEC_KEY] [--set-field SET_FIELD SET_FIELD]
                           [--add-field ADD_FIELD ADD_FIELD]
                           [--print-default-config] [--print-test PRINT_TEST]
+                          [--clone-tests CLONE_TESTS [CLONE_TESTS ...]]
+                          [--print-config]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -61,13 +63,20 @@ optional arguments:
   -k TEST_EXEC_KEY, --test-exec-key TEST_EXEC_KEY
                         Test execution key to be overwritten
   --set-field SET_FIELD SET_FIELD
-                        Define field - value pairs to be set (e.g. --set-field summary "Foo bar")
+                        Define field - value pairs to be set (e.g. --set-field
+                        summary "Foo bar")
   --add-field ADD_FIELD ADD_FIELD
-                        Define field - value pairs to be added (e.g. --add-field scope webshop)
+                        Define field - value pairs to be added (e.g. --add-
+                        field scope webshop)
   --print-default-config
                         Prints the content of the default config and exit
   --print-test PRINT_TEST
                         Prints the fields of the given issue and exit
+  --clone-tests CLONE_TESTS [CLONE_TESTS ...]
+                        Clones a given set of tests to the given project-key
+                        (e.g. --clone-tests TEST-1 TEST-2 TEST-3 --project-key
+                        PROJECT
+  --print-config        Prints the content of the merged config
 ```
 
 ### Test case generation 
