@@ -22,7 +22,7 @@ class JiraReader(object):
         return self._cache[issue_id]
 
     def convert_tests(self, query, props):
-        issues = self._jira.search_issues(query)
+        issues = self._jira.search_issues(query, maxResults=False)
         suites = {}
         for issue in issues:
             suite_name = template.get_string_value_for_placeholder(self, issue, issue,
